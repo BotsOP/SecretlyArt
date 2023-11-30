@@ -1,0 +1,11 @@
+#pragma kernel FollowVectorPath
+
+Texture3D<float4> vectorField;
+RWStructuredBuffer<float3> dir;
+float3 pos;
+
+[numthreads(1,1,1)]
+void FollowVectorPath (uint3 id : SV_DispatchThreadID)
+{
+	dir[0] = vectorField[(int3)pos];
+}
