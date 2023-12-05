@@ -11,8 +11,8 @@ public class GPUPhysicsManager : MonoBehaviour
     private MeshGenManager meshGenManager;
     private Chunk[,,] chunks => meshGenManager.chunks;
     private Vector3[] caveBounds => meshGenManager.caveBounds;
-    private int amountChunksHorizontal => meshGenManager.amountChunksHorizontal;
-    private int amountChunksVertical => meshGenManager.amountChunksVertical;
+    private int AmountChunksX => meshGenManager.amountChunksX;
+    private int AmountChunksY => meshGenManager.amountChunksY;
     private LayerMask caveMask => meshGenManager.caveMask;
 
     private void OnEnable()
@@ -34,32 +34,33 @@ public class GPUPhysicsManager : MonoBehaviour
         }
 
         float lowestDist = float.MaxValue;
-        RayOutput closestPos =  new RayOutput();
+        RayOutput closestRay =  new RayOutput();
         
         foreach (var chunkCollider in chunksHit)
         {
-            Vector3 chunkIndex = GetChunkIndex(chunkCollider.transform.position);
+            Vector3 chunkIndex = meshGenManager.GetChunkIndex(chunkCollider.transform.position);
             Chunk chunk = chunks[(int)chunkIndex.x, (int)chunkIndex.y, (int)chunkIndex.z];
 
             if (GPUPhysics.SphereIntersectMesh(chunk.vertexBuffer, chunk.indexBuffer, chunk.position, _spherePos,
                     _sphereRadius, out RayOutput closestPoint))
             {
+                //Switch to box average instead of closest
                 float dist = Vector3.Distance(closestPoint.position, _spherePos);
                 if (dist < lowestDist)
                 {
                     lowestDist = dist;
-                    closestPos.position = closestPoint.position;
-                    closestPos.normal = closestPoint.normal;
+                    closestRay.position = closestPoint.position;
+                    closestRay.normal = closestPoint.normal;
                 }
             }
         }
 
-        if (closestPos.position == Vector3.zero)
+        if (closestRay.position == Vector3.zero)
         {
             return false;
         }
 
-        _closestPoint = closestPos;
+        _closestPoint = closestRay;
         
         return true;
     }
@@ -73,11 +74,11 @@ public class GPUPhysicsManager : MonoBehaviour
         Vector3 localRayOrigin = _rayOrigin;
         while (true)
         {
-            Vector3 chunkIndex = GetChunkIndex(localRayOrigin);
+            Vector3 chunkIndex = meshGenManager.GetChunkIndex(localRayOrigin);
             chunkIndex = new Vector3((int)chunkIndex.x, (int)chunkIndex.y, (int)chunkIndex.z);
             
             if (chunkIndex.x < 0 || chunkIndex.y < 0 || chunkIndex.z < 0 || 
-                chunkIndex.x > amountChunksHorizontal - 1 || chunkIndex.y > amountChunksVertical - 1 || chunkIndex.z > amountChunksHorizontal - 1)
+                chunkIndex.x > AmountChunksX - 1 || chunkIndex.y > AmountChunksY - 1 || chunkIndex.z > AmountChunksX - 1)
             {
                 break;
             }
@@ -107,11 +108,5 @@ public class GPUPhysicsManager : MonoBehaviour
         }
 
         return false;
-    }
-
-    private Vector3 GetChunkIndex(Vector3 _playerPos)
-    {
-        return _playerPos.Remap(caveBounds[0], caveBounds[1], Vector3.zero, 
-                                new Vector3(amountChunksHorizontal, amountChunksVertical, amountChunksHorizontal));
     }
 }
