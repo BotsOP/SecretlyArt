@@ -14,9 +14,6 @@ namespace MeshGen
         private MeshGenManager meshGenManager;
         private GPUPhysicsManager physicsManager;
         private Chunk[,,] chunks => meshGenManager.chunks;
-        private Vector3[] caveBounds => meshGenManager.caveBounds;
-        private int amountChunksHorizontal => meshGenManager.amountChunksHorizontal;
-        private int amountChunksVertical => meshGenManager.amountChunksVertical;
         private LayerMask caveMask => meshGenManager.caveMask;
 
         private int chunkSize;
@@ -63,8 +60,13 @@ namespace MeshGen
             Collider[] chunksHit = Physics.OverlapSphere(_pos, _carveSize, caveMask);
             foreach (var chunkCollider in chunksHit)
             {
-                Vector3 chunkIndex = GetChunkIndex(chunkCollider.transform.position);
-                Chunk chunk = chunks[(int)chunkIndex.x, (int)chunkIndex.y, (int)chunkIndex.z];
+                Vector3Int chunkIndex = meshGenManager.GetChunkIndex(chunkCollider.transform.position);
+                if (!meshGenManager.IsChunkIndexWithinRange(chunkIndex))
+                {
+                    continue;
+                }
+                
+                Chunk chunk = chunks[chunkIndex.x, chunkIndex.y, chunkIndex.z];
                 Vector3 carvePos = _pos - chunk.position;
 
                 Vector3[] areaHitCorners = { _pos - new Vector3(_carveSize, _carveSize, _carveSize) - chunk.position, _pos + new Vector3(_carveSize, _carveSize, _carveSize) - chunk.position};
@@ -101,8 +103,13 @@ namespace MeshGen
             Collider[] chunksHit = Physics.OverlapSphere(_pos, _carveSize);
             foreach (var chunkCollider in chunksHit)
             {
-                Vector3 chunkIndex = GetChunkIndex(chunkCollider.transform.position);
-                Chunk chunk = chunks[(int)chunkIndex.x, (int)chunkIndex.y, (int)chunkIndex.z];
+                Vector3Int chunkIndex = meshGenManager.GetChunkIndex(chunkCollider.transform.position);
+                if (!meshGenManager.IsChunkIndexWithinRange(chunkIndex))
+                {
+                    continue;
+                }
+                
+                Chunk chunk = chunks[chunkIndex.x, chunkIndex.y, chunkIndex.z];
                 Vector3 carvePos = _pos - chunk.position;
 
                 Vector3[] areaHitCorners = { _pos - new Vector3(_carveSize, _carveSize, _carveSize) - chunk.position, _pos + new Vector3(_carveSize, _carveSize, _carveSize) - chunk.position};
@@ -119,9 +126,14 @@ namespace MeshGen
                 float areaHeight = Mathf.Abs(areaHitCorners[0].y - areaHitCorners[1].y);
                 float areaDepth = Mathf.Abs(areaHitCorners[0].z - areaHitCorners[1].z);
 
-                int dispatchWidth = Mathf.CeilToInt(areaWidth / threadGroupSize.x) + 1;
-                int dispatchHeight = Mathf.CeilToInt(areaHeight / threadGroupSize.y) + 1;
-                int dispatchDepth = Mathf.CeilToInt(areaDepth / threadGroupSize.z) + 1;
+                int dispatchWidth = Mathf.CeilToInt(areaWidth / threadGroupSize.x);
+                int dispatchHeight = Mathf.CeilToInt(areaHeight / threadGroupSize.y);
+                int dispatchDepth = Mathf.CeilToInt(areaDepth / threadGroupSize.z);
+
+                if (dispatchWidth == 0 || dispatchHeight == 0 || dispatchDepth == 0)
+                {
+                    continue;
+                }
 
                 caveCarveShader.SetTexture(1, "noiseTex", chunk.noiseTex);
                 caveCarveShader.SetVector("carvePos", carvePos);
@@ -132,12 +144,6 @@ namespace MeshGen
                 caveCarveShader.Dispatch(1, dispatchWidth, dispatchHeight, dispatchDepth);
                 chunk.GenerateMesh();
             }
-        }
-    
-        private Vector3 GetChunkIndex(Vector3 _playerPos)
-        {
-            return _playerPos.Remap(caveBounds[0], caveBounds[1], Vector3.zero, 
-                                    new Vector3(amountChunksHorizontal, amountChunksVertical, amountChunksHorizontal));
         }
     }
 

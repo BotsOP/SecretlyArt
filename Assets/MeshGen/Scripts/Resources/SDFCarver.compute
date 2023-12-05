@@ -12,6 +12,11 @@ float3 startPos;
 void RemoveTerrain (uint3 id : SV_DispatchThreadID)
 {
 	uint3 currentPos = id + startPos;
+	if(currentPos.x < 1 || currentPos.y < 1 || currentPos.z < 1 || currentPos.x >= 32 || currentPos.y >= 32 || currentPos.z >= 32)
+	{
+		return;
+	}
+	
 	float dist = distance((float3)currentPos, carvePos);
 	if(dist < carveSize)
 	{
@@ -26,6 +31,11 @@ void RemoveTerrain (uint3 id : SV_DispatchThreadID)
 void FillTerrain (uint3 id : SV_DispatchThreadID)
 {
 	uint3 currentPos = id + startPos;
+	if(currentPos.x < 1 || currentPos.y < 1 || currentPos.z < 1 || currentPos.x >= 32 || currentPos.y >= 32 || currentPos.z >= 32)
+	{
+		return;
+	}
+	
 	float dist = distance((float3)currentPos, carvePos);
 	if(dist < carveSize)
 	{
